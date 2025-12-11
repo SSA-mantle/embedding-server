@@ -1,2 +1,6 @@
 # Jupyter 자동 저장 체크포인트
 **/.ipynb_checkpoints/
+
+# 큰 임베딩 / 사전 파일은 git에서 관리하지 않기
+*.bin
+*.dic
