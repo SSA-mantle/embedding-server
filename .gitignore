@@ -7,3 +7,6 @@
 *.ft
 *.npy
 *.vec
+
+__pycache__/
+*.pyc
