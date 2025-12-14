@@ -37,8 +37,6 @@ class FileAnswerSource(AnswerSourcePort):
             if s.startswith("#"):
                 continue
 
-            # 필요하면 여기에서 normalize 규칙을 추가할 수 있음
-            # (예: 양끝 공백 제거는 이미 했고, 대소문자/정규화는 정책에 따라)
             if s not in seen:
                 seen.add(s)
                 out.append(s)

@@ -17,7 +17,6 @@ class RedisDailyCache(DailyCachePort):
     """
 
     def __init__(self):
-        # redis 라이브러리는 어댑터 내부에서만 import (헥사고날 원칙)
         import redis  # type: ignore
 
         cfg = settings.redis
@@ -30,10 +29,6 @@ class RedisDailyCache(DailyCachePort):
             password=cfg.password,
             decode_responses=True,
         )
-
-        # ✅ 중요: Redis 서버가 실제로 떠있는지 확인
-        # 안 떠있으면 여기서 예외 발생 -> main.py에서 잡아서 daily_cache=None 처리
-        self.client.ping()
 
     # ---------- key helpers ----------
     def _k(self, suffix: str) -> str:

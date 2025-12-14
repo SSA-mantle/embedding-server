@@ -10,7 +10,7 @@ class OpenSearchVectorStore(VectorStorePort):
     """
     OpenSearch 기반 VectorStore 어댑터.
 
-    전제(추천):
+    전제:
     - 문서 _id = word
     - _source에 {"word": "...", "vector": [...]} 가 저장
     """

@@ -8,7 +8,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.domain.similarity import cosine_similarity
-from app.application.ports import TodayAnswerStatePort, VectorStorePort, DailyCachePort
+from app.application.ports import TodayAnswerStatePort, VectorStorePort
 
 
 class SimilarityRequest(BaseModel):
@@ -23,7 +23,6 @@ class ApiDeps:
     """
     state_store: TodayAnswerStatePort
     vector_store: Optional[VectorStorePort]
-    daily_cache: Optional[DailyCachePort]
 
     # main에서 만들어서 넘겨줄 콜백들
     ensure_ready: Callable[[], None]
@@ -37,8 +36,8 @@ def create_router(deps: ApiDeps) -> APIRouter:
     def health():
         return {
             "ok": True,
+            "state_store_ready": deps.state_store is not None,
             "vector_store_ready": deps.vector_store is not None,
-            "redis_cache_ready": deps.daily_cache is not None,
         }
 
     @router.get("/today")
@@ -70,6 +69,15 @@ def create_router(deps: ApiDeps) -> APIRouter:
                 "reason": "vector_store_not_ready",
             }
 
+        if st.answer_vector is None:
+            return {
+                "date": st.date,
+                "answer": st.answer,
+                "word": guess,
+                "similarity": None,
+                "reason": "answer_vector_not_ready",
+            }
+
         guess_vec = deps.vector_store.get_vector(guess)
         if guess_vec is None:
             return {
@@ -78,15 +86,6 @@ def create_router(deps: ApiDeps) -> APIRouter:
                 "word": guess,
                 "similarity": None,
                 "reason": "guess_vector_not_found",
-            }
-
-        if st.answer_vector is None:
-            return {
-                "date": st.date,
-                "answer": st.answer,
-                "word": guess,
-                "similarity": None,
-                "reason": "answer_vector_not_ready",
             }
 
         sim = cosine_similarity(guess_vec, st.answer_vector)

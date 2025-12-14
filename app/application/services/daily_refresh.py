@@ -27,7 +27,7 @@ def run_daily_refresh(
     answer_picker: AnswerPickerPort,
     vector_store: VectorStorePort,
     state_store: TodayAnswerStatePort,
-    cache: Optional[DailyCachePort] = None,
+    cache: DailyCachePort
     k: int = 1000,
 ) -> DailyRefreshResult:
     """
@@ -36,8 +36,8 @@ def run_daily_refresh(
     1) 후보 로드(answer_source)
     2) 오늘 정답 선정(answer_picker)
     3) 정답 벡터 조회(vector_store.get_vector)
-    4) top-k knn(vector_store.knn) + 정답 단어 제거 + 정확히 k개 맞춤
-    5) (옵션) Redis 저장(cache)
+    4) top-k knn(vector_store.knn) + 정확히 k개 맞춤
+    5) Redis 저장(cache)
     6) 메모리 상태 저장(state_store)
     """
 
@@ -81,18 +81,11 @@ def run_daily_refresh(
             out.append(Neighbor(word=w, score=float(it.score)))
         return out
 
-    # 1차: k+1 (정답이 섞일 가능성 대비)
+    # k+1
     raw1 = vector_store.knn(answer_vector, k + 1)
-    filtered = filter_and_dedupe(raw1)
+    topk = filter_and_dedupe(raw1)
 
-    # 부족하면 2차: k+50 (예외 대비)
-    if len(filtered) < k:
-        raw2 = vector_store.knn(answer_vector, k + 50)
-        filtered = filter_and_dedupe(raw2)
-
-    topk = filtered[:k]
-
-    # 5) Redis 저장(옵션)
+    # 5) Redis 저장
     if cache is not None:
         prev_date = cache.get_active_date()
 

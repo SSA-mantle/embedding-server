@@ -88,8 +88,6 @@ class DailyCachePort(Protocol):
 class TodayAnswerStatePort(Protocol):
     """
     파이썬 서버 프로세스 메모리에 들고 있는 '오늘 정답 상태' 접근 Port.
-    - 현재는 dict(TODAY)로 들고 있지만,
-      나중에 구현을 바꿔도 유스케이스는 그대로 유지할 수 있음.
     """
     def get(self) -> Optional[TodayAnswerState]:
         ...

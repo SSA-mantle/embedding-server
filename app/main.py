@@ -85,7 +85,6 @@ def create_app() -> FastAPI:
         ApiDeps(
             state_store=state_store,
             vector_store=vector_store,
-            daily_cache=daily_cache,
             ensure_ready=ensure_ready,
             refresh_today_job=refresh_today_job,
         )

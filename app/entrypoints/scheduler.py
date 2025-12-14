@@ -1,4 +1,3 @@
-# app/entrypoints/scheduler.py
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -50,7 +49,6 @@ class SchedulerRunner:
         print("[scheduler] started")
 
     def stop(self) -> None:
-        # APScheduler가 이미 종료된 상태일 수도 있으니 예외 없이 종료
         try:
             self.scheduler.shutdown(wait=False)
         except Exception:

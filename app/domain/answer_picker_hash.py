@@ -13,7 +13,7 @@ class HashAnswerPicker(AnswerPickerPort):
 
     특징
     - 같은 date + 같은 candidates면 항상 같은 정답
-    - 후보 리스트의 "순서가 바뀌어도" 결과가 바뀌지 않게 설계(중요!)
+    - 후보 리스트의 순서가 바뀌어도 결과가 바뀌지 않음
       -> 각 후보에 대해 hash(date|candidate)를 계산하고, 가장 작은 hash를 가진 후보를 선택
 
     - 한글/영문 모두 utf-8로 처리
