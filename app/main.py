@@ -1,124 +1,116 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from __future__ import annotations
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from .answer_manager import AnswerManager
-from .vector_db import get_vector_db, cosine_similarity
-from .refresh_job import run_daily_refresh
+from fastapi import FastAPI
 
-KST = ZoneInfo("Asia/Seoul")
+from app.config import settings
 
-app = FastAPI()
+from app.domain.answer_picker_hash import HashAnswerPicker
 
-answer_mgr = AnswerManager(answers_path="data/answers.txt")
-vdb = get_vector_db()
+from app.adapters.answer_cache_memory import InMemoryTodayAnswerStateStore
+from app.adapters.answer_source_file import FileAnswerSource
+from app.adapters.vector_store_opensearch import OpenSearchVectorStore
+from app.adapters.cache_redis import RedisDailyCache
 
-TODAY = {
-    "date": None,
-    "answer": None,
-    "answer_vector": None,
-}
+from app.application.services.daily_refresh import run_daily_refresh
 
-scheduler = BackgroundScheduler(timezone=KST)
+from app.entrypoints.api import ApiDeps, create_router
+from app.entrypoints.scheduler import SchedulerDeps, SchedulerRunner
 
-class SimilarityRequest(BaseModel):
-    word: str
+KST = ZoneInfo(settings.timezone)
 
-def refresh_today_cache():
+
+def _today_str_kst() -> str:
+    return datetime.now(KST).strftime("%Y-%m-%d")
+
+
+def create_app() -> FastAPI:
     """
-    매일 1시에 실행될 작업:
-    - 오늘 정답 확정
-    - 정답 벡터 조회
-    - top1000 계산 후 Redis 저장 (지금은 redis_client=None)
-    - TODAY 캐시 갱신
+    Composition Root (조립 전용)
+    - 구현체(adapters) 생성
+    - 정책(domain) 생성
+    - 유스케이스(application) 실행 함수 준비
+    - entrypoints(api/scheduler)에 의존성 주입
     """
-    result = run_daily_refresh(
-        answer_mgr=answer_mgr,
-        vdb=vdb,
-        redis_client=None,   # 나중에 Redis 연결 시 여기만 바꾸면 됨
-        k=1000,
-        key_prefix="ssamentle",
+    app = FastAPI()
+
+    # ===== Adapters / Domain policy =====
+    state_store = InMemoryTodayAnswerStateStore()
+    answer_source = FileAnswerSource(path=settings.answers_path)
+    answer_picker = HashAnswerPicker()
+
+    # OpenSearch
+    try:
+        vector_store = OpenSearchVectorStore()
+    except Exception as e:
+        print(f"[warn] OpenSearchVectorStore init failed: {e}")
+        vector_store = None  # type: ignore
+
+    # Redis
+    try:
+        daily_cache = RedisDailyCache()
+    except Exception as e:
+        print(f"[warn] RedisDailyCache init failed: {e}")
+        daily_cache = None  # type: ignore
+
+    # ===== Use-case runner callbacks =====
+    def refresh_today_job() -> None:
+        if vector_store is None:
+            print("[refresh] skipped (vector_store not ready)")
+            return
+
+        result = run_daily_refresh(
+            date=_today_str_kst(),
+            answer_source=answer_source,
+            answer_picker=answer_picker,
+            vector_store=vector_store,
+            state_store=state_store,
+            cache=daily_cache,
+            k=1000,
+        )
+        print(
+            f"[refresh] date={result.state.date}, answer={result.state.answer}, "
+            f"vec_ready={result.state.answer_vector is not None}, topk={len(result.topk)}, "
+            f"redis={'on' if daily_cache is not None else 'off'}"
+        )
+
+    def ensure_ready() -> None:
+        if state_store.get() is None:
+            refresh_today_job()
+
+    # ===== Entrypoints: API Router =====
+    router = create_router(
+        ApiDeps(
+            state_store=state_store,
+            vector_store=vector_store,
+            daily_cache=daily_cache,
+            ensure_ready=ensure_ready,
+            refresh_today_job=refresh_today_job,
+        )
     )
-    TODAY["date"] = result.date
-    TODAY["answer"] = result.answer
-    TODAY["answer_vector"] = result.answer_vector
+    app.include_router(router)
 
-    print(f"[refresh] date={result.date}, answer={result.answer}, vec_ready={result.answer_vector is not None}")
-
-
-def ensure_today_ready():
-    # 서버 시작 직후 TODAY가 비어있으면 1번 채움
-    if TODAY["date"] is None or TODAY["answer"] is None or TODAY["answer_vector"] is None:
-        refresh_today_cache()
-
-
-@app.on_event("startup")
-def on_startup():
-    # 1) 서버 켤 때 오늘 캐시를 먼저 채워둠
-    ensure_today_ready()
-
-    # 2) 매일 01:00(KST)에 캐시 갱신 작업 등록
-    scheduler.add_job(
-        refresh_today_cache,
-        trigger=CronTrigger(hour=1, minute=0, timezone=KST),
-        id="daily_refresh_1am",
-        replace_existing=True,
+    # ===== Entrypoints: Scheduler =====
+    scheduler_runner = SchedulerRunner(
+        SchedulerDeps(
+            timezone=KST,
+            refresh_today_job=refresh_today_job,
+        )
     )
 
-    scheduler.start()
-    print("[scheduler] started")
+    @app.on_event("startup")
+    def on_startup():
+        ensure_ready()
+        scheduler_runner.start()
+
+    @app.on_event("shutdown")
+    def on_shutdown():
+        scheduler_runner.stop()
+
+    return app
 
 
-@app.on_event("shutdown")
-def on_shutdown():
-    scheduler.shutdown(wait=False)
-    print("[scheduler] stopped")
-
-
-@app.get("/health")
-def health():
-    return {"ok": True}
-
-
-@app.get("/today")
-def today():
-    _ensure_today_ready()
-    return {"date": TODAY["date"], "answer": TODAY["answer"]}
-
-
-@app.post("/similarity")
-def get_similarity(req: SimilarityRequest):
-    ensure_today_ready()
-
-    guess = req.word.strip()
-    if not guess:
-        return {"similarity": None, "reason": "empty_word"}
-
-    guess_vec = vdb.get_vector(guess)
-    if guess_vec is None:
-        return {
-            "date": TODAY["date"],
-            "answer": TODAY["answer"],
-            "word": guess,
-            "similarity": None,
-            "reason": "guess_vector_not_found",
-        }
-
-    ans_vec = TODAY["answer_vector"]
-    sim = cosine_similarity(guess_vec, ans_vec)
-    return {
-        "date": TODAY["date"],
-        "answer": TODAY["answer"],
-        "word": guess,
-        "similarity": sim,
-    }
-
-
-# (개발 편의) 수동 갱신 엔드포인트: 테스트할 때만 사용
-@app.post("/admin/refresh")
-def admin_refresh():
-    refresh_today_cache()
-    return {"ok": True, "date": TODAY["date"], "answer": TODAY["answer"]}
+# uvicorn app.main:app 을 그대로 쓰기 위해 모듈 레벨 app 제공
+app = create_app()
