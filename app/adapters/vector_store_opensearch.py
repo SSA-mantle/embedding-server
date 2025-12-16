@@ -80,5 +80,6 @@ class OpenSearchVectorStore(VectorStorePort):
             w = src.get("word") or h.get("_id")
             score = h.get("_score")
             if w is not None and score is not None:
-                out.append(Neighbor(word=str(w), score=float(score)))
+                cos = 2.0 * float(score) - 1.0
+                out.append(Neighbor(word=str(w), score=cos))
         return out

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date as Date, timedelta
 from typing import List, Optional
 
 from app.application.ports import (
@@ -27,7 +28,7 @@ def run_daily_refresh(
     answer_picker: AnswerPickerPort,
     vector_store: VectorStorePort,
     state_store: TodayAnswerStatePort,
-    cache: DailyCachePort
+    cache: DailyCachePort,
     k: int = 1000,
 ) -> DailyRefreshResult:
     """
@@ -56,12 +57,13 @@ def run_daily_refresh(
     if answer_vector is None:
         topk: List[Neighbor] = []
         if cache is not None:
-            prev_date = cache.get_active_date()
             cache.save_daily_answer(date, answer)
             cache.save_daily_topk(date, topk)
             cache.set_active_date(date)
-            if prev_date and prev_date != date:
-                cache.delete_daily(prev_date)
+
+            today = Date.fromisoformat(date)
+            two_days_ago = (today - timedelta(days=2)).isoformat()
+            cache.delete_daily(two_days_ago)
         return DailyRefreshResult(state=today_state, topk=topk)
 
     # 4) top-k knn + 정답 제거 + 정확히 k개 맞춤
@@ -87,13 +89,12 @@ def run_daily_refresh(
 
     # 5) Redis 저장
     if cache is not None:
-        prev_date = cache.get_active_date()
-
         cache.save_daily_answer(date, answer)
         cache.save_daily_topk(date, topk)
         cache.set_active_date(date)
 
-        if prev_date and prev_date != date:
-            cache.delete_daily(prev_date)
+        today = Date.fromisoformat(date)
+        two_days_ago = (today - timedelta(days=2)).isoformat()
+        cache.delete_daily(two_days_ago)
 
     return DailyRefreshResult(state=today_state, topk=topk)

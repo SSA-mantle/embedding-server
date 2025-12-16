@@ -53,7 +53,7 @@ class AppSettings:
 def get_settings() -> AppSettings:
     # ---- app ---- 
     timezone = os.getenv("APP_TZ", "Asia/Seoul")
-    answers_path = os.getenv("ANSWERS_PATH", "../data/answers.txt")
+    answers_path = os.getenv("ANSWERS_PATH", "data/answers.txt")
 
     # ---- opensearch ----
     os_host = os.getenv("OS_HOST", "localhost")

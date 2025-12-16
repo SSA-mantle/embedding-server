@@ -18,7 +18,13 @@ class FileAnswerSource(AnswerSourcePort):
     """
 
     def __init__(self, path: str, encoding: str = "utf-8"):
-        self.path = Path(path)
+        p = Path(path)
+        
+        if not p.is_absolute():
+            project_root = Path(__file__).resolve().parents[2]
+            p = (project_root / p).resolve()
+
+        self.path = p
         self.encoding = encoding
 
     def list_answers(self) -> List[str]:
