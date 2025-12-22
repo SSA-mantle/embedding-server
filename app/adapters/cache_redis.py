@@ -10,10 +10,10 @@ class RedisDailyCache(DailyCachePort):
     """
     Redis를 DailyCachePort로 감싼 어댑터.
 
-    키 설계(prefix=ssamentle):
-      - ssamentle:active_date      (STRING) -> "YYYY-MM-DD"
-      - ssamentle:{date}:answer    (STRING) -> "정답단어"
-      - ssamentle:{date}:topk      (ZSET)   -> member=word, score=similarity
+    키 설계(prefix=ssamantle):
+      - ssamantle:active_date      (STRING) -> "YYYY-MM-DD"
+      - ssamantle:{date}:answer    (STRING) -> "정답단어"
+      - ssamantle:{date}:topk      (ZSET)   -> member=word, score=similarity
     """
 
     def __init__(self):

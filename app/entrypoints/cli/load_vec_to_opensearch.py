@@ -167,7 +167,7 @@ def iter_actions(index: str, items: Iterator[Tuple[str, list[float]]]):
 def main():
     parser = argparse.ArgumentParser(description="Load .vec into OpenSearch (knn_vector).")
     parser.add_argument("--vec", required=True, help="path to .vec file")
-    parser.add_argument("--index", default=os.getenv("OS_INDEX", "ssamentle-words"))
+    parser.add_argument("--index", default=os.getenv("OS_INDEX", "ssamantle-words"))
     parser.add_argument("--dim", type=int, default=300)
     parser.add_argument("--chunk-size", type=int, default=int(os.getenv("OS_BULK_CHUNK", "1000")))
     parser.add_argument("--recreate-index", action="store_true", help="delete & recreate index")

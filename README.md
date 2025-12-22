@@ -64,7 +64,7 @@ curl.exe http://127.0.0.1:8000/health
 ## 6) Redis에 저장된 데이터 확인 (명령어 3개)
 
 ```powershell
-docker exec -it ssamentle-redis redis-cli keys "ssamentle:*"
-docker exec -it ssamentle-redis redis-cli get "ssamentle:active_date"
-docker exec -it ssamentle-redis redis-cli zrevrange "ssamentle:2025-12-16:topk" 0 20 withscores
+docker exec -it ssamantle-redis redis-cli keys "ssamantle:*"
+docker exec -it ssamantle-redis redis-cli get "ssamantle:active_date"
+docker exec -it ssamantle-redis redis-cli zrevrange "ssamantle:2025-12-16:topk" 0 20 withscores
 ```

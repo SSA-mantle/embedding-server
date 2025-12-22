@@ -58,7 +58,7 @@ def get_settings() -> AppSettings:
     # ---- opensearch ----
     os_host = os.getenv("OS_HOST", "localhost")
     os_port = int(os.getenv("OS_PORT", "9200"))
-    os_index = os.getenv("OS_INDEX", "ssamentle-words")
+    os_index = os.getenv("OS_INDEX", "ssamantle-words")
 
     os_use_ssl = _env_bool("OS_USE_SSL", False)
     os_verify = _env_bool("OS_VERIFY_CERTS", os_use_ssl)
@@ -93,7 +93,7 @@ def get_settings() -> AppSettings:
         port=int(os.getenv("REDIS_PORT", "6379")),
         db=int(os.getenv("REDIS_DB", "0")),
         password=os.getenv("REDIS_PASSWORD"),
-        key_prefix=os.getenv("REDIS_KEY_PREFIX", "ssamentle"),
+        key_prefix=os.getenv("REDIS_KEY_PREFIX", "ssamantle"),
     )
 
     return AppSettings(

@@ -1,7 +1,7 @@
 services:
   opensearch:
     image: opensearchproject/opensearch:latest
-    container_name: ssamentle-opensearch
+    container_name: ssamantle-opensearch
     environment:
       - discovery.type=single-node
       - DISABLE_SECURITY_PLUGIN=true
@@ -22,7 +22,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: ssamentle-redis
+    container_name: ssamantle-redis
     ports:
       - "6379:6379"
     volumes:
