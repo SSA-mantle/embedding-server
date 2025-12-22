@@ -7,6 +7,17 @@ from typing import List, Optional, Protocol, Sequence
 # ===== 공통 타입 =====
 Vector = Sequence[float]
 
+@dataclass(frozen=True)
+class AnswerEntry:
+    """
+    정답 후보 한 줄(단어 + 선택적 설명).
+
+    - word: 정답 단어
+    - description: 단어 설명(없을 수도 있음; 기존 포맷 호환)
+    """
+    word: str
+    description: Optional[str] = None
+
 
 @dataclass(frozen=True)
 class Neighbor:
@@ -26,10 +37,12 @@ class TodayAnswerState:
     - date: YYYY-MM-DD (KST 기준)
     - answer: 정답 단어
     - answer_vector: 정답 벡터 (매 요청마다 DB에서 다시 안 가져오려고 캐시)
+    - answer_desc: 정답 단어 설명
     """
     date: str
     answer: str
     answer_vector: Optional[List[float]]
+    answer_desc: Optional[str] = None
 
 
 # ===== Ports (인터페이스) =====
@@ -39,7 +52,7 @@ class AnswerSourcePort(Protocol):
     정답 후보 리스트를 어디서 가져오는지(파일/DB/HTTP 등)는 어댑터가 책임.
     유스케이스는 '정답 후보 문자열 리스트'만 받는다.
     """
-    def list_answers(self) -> List[str]:
+    def list_answers(self) -> List[AnswerEntry]:
         ...
 
 
@@ -76,6 +89,9 @@ class DailyCachePort(Protocol):
         ...
 
     def save_daily_answer(self, date: str, answer: str) -> None:
+        ...
+
+    def save_daily_answer_desc(self, date: str, desc: Optional[str]) -> None:
         ...
 
     def save_daily_topk(self, date: str, items: List[Neighbor]) -> None:

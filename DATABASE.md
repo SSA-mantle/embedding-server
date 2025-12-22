@@ -17,6 +17,10 @@
   - score: `similarity` (유사도 점수, float)
   - 예: `ssamantle:2025-12-16:topk`
 
+- `ssamantle:{date}:answer_desc` (STRING)
+  - 값: `"정답단어는 ~~입니다."`
+  - 예: `ssamantle:2025-12-16:answer_desc`
+
 ### 저장 방식
 - `save_daily_topk(date, items)` 실행 시:
   1) 기존 `ssamantle:{date}:topk` 삭제(DEL)

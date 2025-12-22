@@ -72,6 +72,7 @@ def create_app() -> FastAPI:
         )
         print(
             f"[refresh] date={result.state.date}, answer={result.state.answer}, "
+            f"description={result.state.answer_desc}, "
             f"vec_ready={result.state.answer_vector is not None}, topk={len(result.topk)}, "
             f"redis={'on' if daily_cache is not None else 'off'}"
         )

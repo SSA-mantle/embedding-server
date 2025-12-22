@@ -5,6 +5,7 @@ from datetime import date as Date, timedelta
 from typing import List, Optional
 
 from app.application.ports import (
+    AnswerEntry,
     AnswerPickerPort,
     AnswerSourcePort,
     DailyCachePort,
@@ -43,14 +44,21 @@ def run_daily_refresh(
     """
 
     # 1) 후보 로드
-    candidates = answer_source.list_answers()
+    entries: List[AnswerEntry] = answer_source.list_answers()
+    candidates = [e.word for e in entries]
+    desc_by_word = {e.word: e.description for e in entries}
 
     # 2) 오늘 정답 선정
     answer = answer_picker.pick(date, candidates).strip()
+    answer_desc = desc_by_word.get(answer)
 
     # 3) 정답 벡터 조회 + 상태 저장(먼저 저장해두면 API에서 today 확인 가능)
     answer_vector = vector_store.get_vector(answer)
-    today_state = TodayAnswerState(date=date, answer=answer, answer_vector=answer_vector)
+    today_state = TodayAnswerState(date=date, 
+        answer=answer, 
+        answer_vector=answer_vector,
+        answer_desc=answer_desc,
+    )
     state_store.set(today_state)
 
     # 벡터가 없으면 topk는 비움(그래도 정답은 cache/state에 남길 수 있음)
@@ -58,6 +66,7 @@ def run_daily_refresh(
         topk: List[Neighbor] = []
         if cache is not None:
             cache.save_daily_answer(date, answer)
+            cache.save_daily_answer_desc(date, answer_desc)
             cache.save_daily_topk(date, topk)
             cache.set_active_date(date)
 
@@ -90,6 +99,7 @@ def run_daily_refresh(
     # 5) Redis 저장
     if cache is not None:
         cache.save_daily_answer(date, answer)
+        cache.save_daily_answer_desc(date, answer_desc)
         cache.save_daily_topk(date, topk)
         cache.set_active_date(date)
 

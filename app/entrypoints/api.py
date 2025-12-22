@@ -45,8 +45,8 @@ def create_router(deps: ApiDeps) -> APIRouter:
         deps.ensure_ready()
         st = deps.state_store.get()
         if st is None:
-            return {"date": None, "answer": None}
-        return {"date": st.date, "answer": st.answer}
+            return {"date": None, "answer": None, "desc": None}
+        return {"date": st.date, "answer": st.answer, "desc": st.answer_desc}
 
     @router.post("/api/similarity")
     def similarity_api(req: SimilarityRequest):

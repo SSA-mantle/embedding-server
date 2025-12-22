@@ -28,7 +28,7 @@ docker compose ps
 ```powershell
 python -m app.entrypoints.cli.load_vec_to_opensearch --vec ".\data\cc.ko.300.ssafy_v1.clean.vec" --recreate-index
 ```
-
+- 상황에 따라 \가 아닌 /를 쓰셔야 합니다.
 ---
 
 ## 4) 앱 실행 (FastAPI)

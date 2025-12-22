@@ -13,6 +13,7 @@ class RedisDailyCache(DailyCachePort):
     키 설계(prefix=ssamantle):
       - ssamantle:active_date      (STRING) -> "YYYY-MM-DD"
       - ssamantle:{date}:answer    (STRING) -> "정답단어"
+      - ssamantle:{date}:answer_desc (STRING) -> "정답 설명"
       - ssamantle:{date}:topk      (ZSET)   -> member=word, score=similarity
     """
 
@@ -37,6 +38,9 @@ class RedisDailyCache(DailyCachePort):
     def _answer_key(self, date: str) -> str:
         return self._k(f"{date}:answer")
 
+    def _answer_desc_key(self, date: str) -> str:
+        return self._k(f"{date}:answer_desc")
+
     def _topk_key(self, date: str) -> str:
         return self._k(f"{date}:topk")
 
@@ -50,6 +54,14 @@ class RedisDailyCache(DailyCachePort):
 
     def save_daily_answer(self, date: str, answer: str) -> None:
         self.client.set(self._answer_key(date), answer)
+
+    def save_daily_answer_desc(self, date: str, desc: Optional[str]) -> None:
+        # 기존 포맷(설명 없음) 호환: desc가 없으면 키를 지워서 '없음' 상태 유지
+        key = self._answer_desc_key(date)
+        if desc is None:
+            self.client.delete(key)
+            return
+        self.client.set(key, desc)
 
     def save_daily_topk(self, date: str, items: List[Neighbor]) -> None:
         """
@@ -69,5 +81,6 @@ class RedisDailyCache(DailyCachePort):
     def delete_daily(self, date: str) -> None:
         pipe = self.client.pipeline()
         pipe.delete(self._answer_key(date))
+        pipe.delete(self._answer_desc_key(date))
         pipe.delete(self._topk_key(date))
         pipe.execute()

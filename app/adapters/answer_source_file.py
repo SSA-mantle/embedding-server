@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List
 
-from app.application.ports import AnswerSourcePort
+from app.application.ports import AnswerEntry, AnswerSourcePort
 
 
 class FileAnswerSource(AnswerSourcePort):
@@ -27,13 +27,13 @@ class FileAnswerSource(AnswerSourcePort):
         self.path = p
         self.encoding = encoding
 
-    def list_answers(self) -> List[str]:
+    def list_answers(self) -> List[AnswerEntry]:
         if not self.path.exists():
             raise FileNotFoundError(f"answers file not found: {self.path}")
 
         lines = self.path.read_text(encoding=self.encoding).splitlines()
 
-        out: List[str] = []
+        out: List[AnswerEntry] = []
         seen = set()
 
         for line in lines:
@@ -43,8 +43,12 @@ class FileAnswerSource(AnswerSourcePort):
             if s.startswith("#"):
                 continue
 
-            if s not in seen:
-                seen.add(s)
-                out.append(s)
+            parts = s.split(maxsplit=1)
+            word = parts[0].strip()
+            desc = parts[1].strip() if len(parts) > 1 else None
+
+            if word not in seen:
+                seen.add(word)
+                out.append(AnswerEntry(word=word, description=desc))
 
         return out
