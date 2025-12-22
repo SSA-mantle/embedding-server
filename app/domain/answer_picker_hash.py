@@ -5,6 +5,8 @@ from typing import List, Tuple
 
 from app.application.ports import AnswerPickerPort
 
+import random
+
 
 class HashAnswerPicker(AnswerPickerPort):
     """
@@ -42,3 +44,7 @@ class HashAnswerPicker(AnswerPickerPort):
             raise ValueError("candidates contains no valid (non-empty) entries")
 
         return best[1]
+
+    # def pick(self, date: str, candidates: List[str]) -> str:
+    #     selected_candidate = random.choice(candidates)
+    #     return selected_candidate
