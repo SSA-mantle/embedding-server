@@ -89,7 +89,7 @@ def create_router(deps: ApiDeps) -> APIRouter:
             }
 
         sim = cosine_similarity(guess_vec, st.answer_vector)
-        return {"date": st.date, "answer": st.answer, "word": guess, "similarity": sim}
+        return {"date": st.date, "answer": st.answer, "word": guess, "similarity": sim, "reason": None}
 
     @router.post("/admin/refresh")
     def admin_refresh():
